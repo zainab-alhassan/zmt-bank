@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>ZMT Bank - Login</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="../images/favicon.png" type="image/icon type">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" href="./login.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+</head>
+<body onload="startTimer()">
+    <header id="header">
+        <a class="logo" id="logo"><img class="logo-img" src="../images/logo.png" alt="logo" onclick="clickLogoImg()"></a>
+        <script>const clickLogoImg = () => window.location.href = '../index.html'</script>
+    </header>
+
+    <main>
+        <div class="section-container">
+            <div class="imgBx">
+                <img src="../images/loginF.jpg" alt="Login Image">
+            </div>
+
+            <div class="mb-5">
+                <h3 class="mb-3">Welcome Back!</h3>
+
+                <input type="text" placeholder="Email" id="emailInp" class="form-control mb-3 topper">
+                <input type="password" placeholder="Password" id="passInp" class="form-control mb-3">
+                
+                <button type="text" id="submitBtn" class="btn w-100 btn-outline-primary mb-3" onclick="handleLogin()">Log In</button>
+
+                <div class="ask-account mb-3">
+                    <a href="#" onclick="showForgotPassword()">Forgot Password?</a>
+                </div>
+
+                <div id="forgotPasswordSection" style="display: none;">
+                    <input type="text" placeholder="Enter your Email" id="forgotEmail" class="form-control mb-3">
+                    <button id="sendCodeBtn" class="btn btn-primary w-100 mb-3" onclick="sendVerificationCode()">Send Verification Code</button>
+
+                    <input type="text" placeholder="Enter Verification Code" id="verificationCode" class="form-control mb-3" style="display: none;">
+                    <input type="password" placeholder="New Password" id="newPassword" class="form-control mb-3" style="display: none;">
+                    <button id="resetPasswordBtn" class="btn btn-success w-100" onclick="resetPassword()" style="display: none;">Reset Password</button>
+                </div>
+
+                <div class="ask-account">
+                    Don't have an account?
+                    <a href="./signup.html" class="ask-account-link">Sign Up</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let failedAttempts = 0;
+        let storedPassword = "1234"; // كلمة المرور الافتراضية
+
+        // تسجيل الدخول
+        function handleLogin() {
+            const email = document.getElementById("emailInp").value.trim();
+            const password = document.getElementById("passInp").value.trim();
+
+            console.log("Entered Password:", password); // للتأكد من القيم
+            console.log("Stored Password:", storedPassword);
+
+            if (!email || !password) {
+                swal("Error", "Please enter both email and password.", "error");
+                return;
+            }
+
+            // التحقق من كلمة المرور
+            if (password === storedPassword) {
+                // حفظ بيانات المستخدم في localStorage
+                localStorage.setItem("userEmail", email);
+                localStorage.setItem("userPassword", password);
+
+                swal("Success", "You have successfully logged in!", "success").then(() => {
+                    window.location.href = './payment.html'; // الانتقال للصفحة التالية
+                });
+            } else {
+                failedAttempts++;
+                swal("Error", `Invalid password! Attempts: ${failedAttempts}`, "error");
+
+                if (failedAttempts >= 3) {
+                    openCameraForVerification();
+                }
+            }
+        }
+
+        // فتح الكاميرا للتحقق
+        function openCameraForVerification() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    swal("Camera Verification", "Please verify your face.", "info");
+
+                    const video = document.createElement("video");
+                    video.srcObject = stream;
+                    video.autoplay = true;
+                    video.style.position = "absolute";
+                    video.style.top = "50%";
+                    video.style.left = "50%";
+                    video.style.transform = "translate(-50%, -50%)";
+                    video.style.border = "2px solid #000";
+                    video.style.zIndex = "1000";
+                    document.body.appendChild(video);
+
+                    // إيقاف الفيديو بعد 15 ثانية
+                    setTimeout(() => {
+                        stream.getTracks().forEach(track => track.stop());
+                        document.body.removeChild(video);
+                        swal("Verification Completed", "Face verification was successful.", "success");
+                    }, 15000);
+                })
+                .catch(() => {
+                    swal("Error", "Unable to access the camera. Please check your camera permissions.", "error");
+                });
+        }
+
+        // عرض قسم إعادة تعيين كلمة المرور
+        function showForgotPassword() {
+            document.getElementById("forgotPasswordSection").style.display = "block";
+        }
+
+        // إرسال رمز التحقق
+        function sendVerificationCode() {
+            const email = document.getElementById("forgotEmail").value.trim();
+            if (!email) {
+                swal("Error", "Please enter your email.", "error");
+                return;
+            }
+
+            swal("Verification Code Sent", `A verification code has been sent to ${email}.`, "success");
+            document.getElementById("verificationCode").style.display = "block";
+            document.getElementById("newPassword").style.display = "block";
+            document.getElementById("resetPasswordBtn").style.display = "block";
+            sessionStorage.setItem("verificationCode", "123456");
+        }
+
+        // إعادة تعيين كلمة المرور
+        function resetPassword() {
+            const enteredCode = document.getElementById("verificationCode").value.trim();
+            const newPassword = document.getElementById("newPassword").value.trim();
+            const storedCode = sessionStorage.getItem("verificationCode");
+
+            if (enteredCode === storedCode) {
+                storedPassword = newPassword; // تحديث كلمة المرور
+                swal("Success", "Your password has been reset successfully.", "success");
+                document.getElementById("forgotPasswordSection").style.display = "none";
+            } else {
+                swal("Error", "Invalid verification code.", "error");
+            }
+        }
+
+        // بدء مؤقت الجلسة
+        function startTimer() {
+            let timeLeft = 120; // دقيقتان
+            const timer = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    swal("Session Expired", "Your session has expired. Redirecting to the home page.", "warning").then(() => {
+                        window.location.href = '../index.html';
+                    });
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
